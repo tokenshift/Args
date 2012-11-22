@@ -373,8 +373,7 @@ func (chain expectation) Chop() Expectation {
 
 /* Discards any remaining, unconsumed arguments and calls Validate. */
 func (final expectation) ChopAndValidate() (result Expectation, err error) {
-	err = fmt.Errorf("Not yet implemented.")
-	result = final
+	result, err = final.Chop().Validate()
 	return
 }
 
