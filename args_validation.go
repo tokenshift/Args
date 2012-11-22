@@ -4,10 +4,10 @@ import (
 	"fmt"
 )
 
-/* Discards any remaining, unconsumed arguments, so that they will
- * not cause validation to fail.
- *
- * Alternately, can be used to force the next Allow or Expect to fail. */
+// Discards any remaining, unconsumed arguments, so that they will
+// not cause validation to fail.
+//
+// Alternately, can be used to force the next Allow or Expect to fail. 
 func (chain expectation) Chop() Expectation {
 	for i, _ := range chain.consumed {
 		chain.consumed[i] = true
@@ -15,20 +15,20 @@ func (chain expectation) Chop() Expectation {
 	return chain
 }
 
-/* Discards any remaining, unconsumed arguments and calls Validate. */
+// Discards any remaining, unconsumed arguments and calls Validate. 
 func (final expectation) ChopAndValidate() (result Expectation, err error) {
 	result, err = final.Chop().Validate()
 	return
 }
 
-/* Called once all expectations have been specified, to parse and
- * validate the arguments.
- *
- * Validation will fail if:
- * 1. There are unconsumed arguments remaining.
- *    Call Chop() to consume any remaining arguments.
- * 2. Any Expected arguments were not found.
- *    Allowed arguments will not cause validation errors when missing. */
+// Called once all expectations have been specified, to parse and
+// validate the arguments.
+//
+// Validation will fail if:
+// 1. There are unconsumed arguments remaining.
+//    Call Chop() to consume any remaining arguments.
+// 2. Any Expected arguments were not found.
+//    Allowed arguments will not cause validation errors when missing. 
 func (final expectation) Validate() (result Expectation, err error) {
 	count := 0
 
@@ -51,23 +51,23 @@ func (final expectation) Validate() (result Expectation, err error) {
 	return
 }
 
-/* Error type to represent failed argument validation.
- *
- * Errors: The list of individual validation errors
- * that were encountered. */
+// Error type to represent failed argument validation.
+//
+// Errors: The list of individual validation errors
+// that were encountered. 
 type ArgsError struct {
 	Errors []error
 }
 
-/* Display string for ArgsError.
- *
- * Displays the list of validation errors. */
+// Display string for ArgsError.
+//
+// Displays the list of validation errors. 
 func (argsError ArgsError) Error() string {
 	return fmt.Sprintf("Validation failed: %v", argsError.Errors)
 }
 
-/* Gets whether the named flag was set.
- * name: The name of the flag to check. */
+// Gets whether the named flag was set.
+// name: The name of the flag to check. 
 func (final expectation) Flag(name string) (value bool, err error) {
 	value, ok := final.flags[name]
 
