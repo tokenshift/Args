@@ -209,20 +209,7 @@ func (chain expectation) AllowFlag(name string, alts ...string) Expectation {
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
 func (chain expectation) AllowOption(name string, alts ...string) Expectation {
-	chain, val, found := chain.getOption(name)
-
-	if !found {
-		for _, alt := range alts {
-			chain, val, found = chain.getOption(alt)
-			if found {
-				break
-			}
-		}
-	}
-
-	if found {
-		chain.options[name] = val
-	}
+	chain, _, _ = chain.getOption(name, alts)
 
 	return chain
 }
@@ -231,15 +218,7 @@ func (chain expectation) AllowOption(name string, alts ...string) Expectation {
  * 
  * If there are no more arguments to consume, nothing will be consumed. */
 func (chain expectation) AllowParam() Expectation {
-	for i, val := range chain.args {
-		if chain.consumed[i] {
-			continue
-		}
-
-		chain.consumed[i] = true
-		chain.parameters = append(chain.parameters, val)
-		break
-	}
+	chain, _, _ = chain.getParam()
 
 	return chain
 }
@@ -251,15 +230,10 @@ func (chain expectation) AllowParam() Expectation {
  * and the named parameter will not be present in the result.
  * name: The name that will be assigned to the parameter. */
 func (chain expectation) AllowNamedParam(name string) Expectation {
-	for i, val := range chain.args {
-		if chain.consumed[i] {
-			continue
-		}
+	chain, index, found := chain.getParam()
 
-		chain.consumed[i] = true
-		chain.namedParameters[name] = len(chain.parameters)
-		chain.parameters = append(chain.parameters, val)
-		break
+	if found {
+		chain.namedParameters[name] = index
 	}
 
 	return chain
@@ -289,20 +263,9 @@ func (chain expectation) ExpectFlag(name string, alts ...string) Expectation {
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
 func (chain expectation) ExpectOption(name string, alts ...string) Expectation {
-	chain, val, found := chain.getOption(name)
+	chain, _, found := chain.getOption(name, alts)
 
 	if !found {
-		for _, alt := range alts {
-			chain, val, found = chain.getOption(alt)
-			if found {
-				break
-			}
-		}
-	}
-
-	if found {
-		chain.options[name] = val
-	} else {
 		chain.errors = append(chain.errors, fmt.Errorf("Option '%v' was expected and not found.", name))
 	}
 
@@ -313,18 +276,7 @@ func (chain expectation) ExpectOption(name string, alts ...string) Expectation {
  *
  * If there are no more arguments to consume, validation will fail. */
 func (chain expectation) ExpectParam() Expectation {
-	found := false
-
-	for i, val := range chain.args {
-		if chain.consumed[i] {
-			continue
-		}
-
-		found = true
-		chain.consumed[i] = true
-		chain.parameters = append(chain.parameters, val)
-		break
-	}
+	chain, _, found := chain.getParam()
 
 	if !found {
 		chain.errors = append(chain.errors, fmt.Errorf("No more arguments to consume."))
@@ -339,21 +291,11 @@ func (chain expectation) ExpectParam() Expectation {
  * If there are no more arguments to consume, validation will fail.
  * name: The name that will be assigned to the parameter. */
 func (chain expectation) ExpectNamedParam(name string) Expectation {
-	found := false
+	chain, index, found := chain.getParam()
 
-	for i, val := range chain.args {
-		if chain.consumed[i] {
-			continue
-		}
-
-		found = true
-		chain.consumed[i] = true
-		chain.namedParameters[name] = len(chain.parameters)
-		chain.parameters = append(chain.parameters, val)
-		break
-	}
-
-	if !found {
+	if found {
+		chain.namedParameters[name] = index
+	} else {
 		chain.errors = append(chain.errors, fmt.Errorf("No more arguments to consume."))
 	}
 
@@ -378,7 +320,13 @@ func (final expectation) ChopAndValidate() (result Expectation, err error) {
 }
 
 /* Called once all expectations have been specified, to parse and
- * validate the arguments. */
+ * validate the arguments.
+ *
+ * Validation will fail if:
+ * 1. There are unconsumed arguments remaining.
+ *    Call Chop() to consume any remaining arguments.
+ * 2. Any Expected arguments were not found.
+ *    Allowed arguments will not cause validation errors when missing. */
 func (final expectation) Validate() (result Expectation, err error) {
 	count := 0
 
@@ -401,10 +349,17 @@ func (final expectation) Validate() (result Expectation, err error) {
 	return
 }
 
+/* Error type to represent failed argument validation.
+ *
+ * Errors: The list of individual validation errors
+ * that were encountered. */
 type ArgsError struct {
 	Errors []error
 }
 
+/* Display string for ArgsError.
+ *
+ * Displays the list of validation errors. */
 func (argsError ArgsError) Error() string {
 	return fmt.Sprintf("Validation failed: %v", argsError.Errors)
 }
@@ -500,7 +455,9 @@ func (final expectation) ParamNamed(name string) (value string, err error) {
 
 /* Helper Methods */
 
-/* Checks whether the specified flag is present. */
+/* Checks whether the specified flag is present.
+ *
+ * name: The name of the flag to look for. */
 func (chain expectation) getFlag(name string) (out expectation, present bool) {
 	for i, arg := range chain.args {
 		if chain.consumed[i] {
@@ -521,31 +478,64 @@ func (chain expectation) getFlag(name string) (out expectation, present bool) {
 	return
 }
 
-/* Retrieves (if found) an option with the specified name. */
-func (chain expectation) getOption(name string) (out expectation, val string, found bool) {
-	var prefix string
+/* Retrieves (if found) an option with the specified name.
+ *
+ * name: The primary name of the option.
+ * alts: Any other names the option could have. */
+func (chain expectation) getOption(name string, alts []string) (out expectation, val string, found bool) {
+	out = chain
 
-	if len(name) == 1 {
-		prefix = "-"
-	} else {
-		prefix = "--"
+	names := make([]string, 0, len(alts) + 1)
+	names = append(names, name)
+	names = append(names, alts...)
+
+	for _, n := range names {
+		for i, arg := range out.args {
+			if out.consumed[i] {
+				continue
+			}
+
+			if len(n) == 1 {
+				if strings.HasPrefix(arg, "-") && arg[1:] == n && len(out.args) > i+1 {
+					found = true
+				}
+			} else {
+				if strings.HasPrefix(arg, "--") && arg[2:] == n && len(out.args) > i+1 {
+					found = true
+				}
+			}
+
+			if found {
+				val = out.args[i+1]
+				out.consumed[i] = true
+				out.consumed[i+1] = true
+				break
+			}
+		}
 	}
 
-	for i, arg := range chain.args {
-		if chain.consumed[i] {
+	if found {
+		chain.options[name] = val
+	}
+
+	return
+}
+
+/* Retrieves the next positional parameter, if there is one. */
+func (chain expectation) getParam() (out expectation, index int, found bool) {
+	out = chain
+
+	for i, val := range chain.args {
+		if out.consumed[i] {
 			continue
 		}
 
-		if strings.HasPrefix(arg, prefix) && arg[len(prefix):] == name && len(chain.args) > i+1 {
-			found = true
-			val = chain.args[i+1]
-			chain.consumed[i] = true
-			chain.consumed[i+1] = true
-			break
-		}
+		found = true
+		out.consumed[i] = true
+		index = len(out.parameters)
+		out.parameters = append(out.parameters, val)
+		break
 	}
-
-	out = chain
 
 	return
 }
