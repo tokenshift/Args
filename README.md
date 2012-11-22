@@ -1,8 +1,8 @@
-=Args.go=
+# Args.go #
 
 Command-line argument parsing and validation for Go.
 
-==Use==
+## Use ##
 
 Args.go recognizes three types of arguments: parameters, options and flags. Options and flags are arguments of the form "--foo" or "-f"; options are immediately followed by an option value, while flags are standalone, their presence being interpreted as a bool. A parameter is simply a single argument that is neither an option nor a flag.
 
