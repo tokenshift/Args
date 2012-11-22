@@ -17,6 +17,8 @@ func Args(args []string) (parser Expectation) {
 
 		flags: make(map[string]bool),
 		options: make(map[string]string),
+		parameters: make([]string, 0, len(args)),
+		namedParameters: make(map[string]int),
 	}
 
 	copy(exp.args, args)
@@ -128,12 +130,30 @@ type Expectation interface {
 	 * name: The name of the flag to check. */
 	Flag(name string) (value bool, err error)
 
+	/* Checks whether the named flag was checked.
+	 *
+	 * NOTE: Does not check whether the flag was present
+	 * in the arguments; checks only whether it was
+	 * Expected or Allowed.
+	 * name: The name of the flag. */
+	HasFlag(name string) (present bool)
+
 	/* Checks whether the named option was found.
 	 *
 	 * Use this before calling Option on an Allowed
 	 * (not Expected) option.
 	 * name: The name of the option. */
 	HasOption(name string) (present bool)
+
+	/* Checks whether there is a parameter at
+	 * the specified index.
+	 * i: The 0-based index of the parameter. */
+	HasParamAt(i int) (present bool)
+
+	/* Checks whether there is a parameter with
+	 * the specified name.
+	 * i: The name of the parameter. */
+	HasParamNamed(name string) (present bool)
 
 	/* Gets the value of the named option.
 	 * name: The name of the option. */
@@ -164,6 +184,13 @@ type expectation struct {
 
 	/* Map of options that were set. */
 	options map[string]string
+
+	/* List of positional parameters. */
+	parameters []string
+
+	/* Map of parameter names to their index in
+	 * the list of parameters. */
+	namedParameters map[string]int
 }
 
 type processor func(exp expectation) (err error)
@@ -209,6 +236,16 @@ func (chain expectation) AllowOption(name string, alts ...string) (Expectation) 
  * 
  * If there are no more arguments to consume, nothing will be consumed. */
 func (chain expectation) AllowParam() (Expectation) {
+	for i, val := range chain.args {
+		if chain.consumed[i] {
+			continue
+		}
+
+		chain.consumed[i] = true
+		chain.parameters = append(chain.parameters, val)
+		break
+	}
+
 	return chain
 }
 
@@ -219,6 +256,17 @@ func (chain expectation) AllowParam() (Expectation) {
  * and the named parameter will not be present in the result.
  * name: The name that will be assigned to the parameter. */
 func (chain expectation) AllowNamedParam(name string) (Expectation) {
+	for i, val := range chain.args {
+		if chain.consumed[i] {
+			continue
+		}
+
+		chain.consumed[i] = true
+		chain.namedParameters[name] = len(chain.parameters)
+		chain.parameters = append(chain.parameters, val)
+		break
+	}
+
 	return chain
 }
 
@@ -270,6 +318,23 @@ func (chain expectation) ExpectOption(name string, alts ...string) (Expectation)
  *
  * If there are no more arguments to consume, validation will fail. */
 func (chain expectation) ExpectParam() (Expectation) {
+	found := false
+
+	for i, val := range chain.args {
+		if chain.consumed[i] {
+			continue
+		}
+
+		found = true
+		chain.consumed[i] = true
+		chain.parameters = append(chain.parameters, val)
+		break
+	}
+
+	if !found {
+		chain.errors = append(chain.errors, fmt.Errorf("No more arguments to consume."))
+	}
+
 	return chain
 }
 
@@ -279,6 +344,24 @@ func (chain expectation) ExpectParam() (Expectation) {
  * If there are no more arguments to consume, validation will fail.
  * name: The name that will be assigned to the parameter. */
 func (chain expectation) ExpectNamedParam(name string) (Expectation) {
+	found := false
+
+	for i, val := range chain.args {
+		if chain.consumed[i] {
+			continue
+		}
+
+		found = true
+		chain.consumed[i] = true
+		chain.namedParameters[name] = len(chain.parameters)
+		chain.parameters = append(chain.parameters, val)
+		break
+	}
+
+	if !found {
+		chain.errors = append(chain.errors, fmt.Errorf("No more arguments to consume."))
+	}
+
 	return chain
 }
 
@@ -287,6 +370,9 @@ func (chain expectation) ExpectNamedParam(name string) (Expectation) {
  *
  * Alternately, can be used to force the next Allow or Expect to fail. */
 func (chain expectation) Chop() (Expectation) {
+	for i, _ := range chain.consumed {
+		chain.consumed[i] = true
+	}
 	return chain
 }
 
@@ -343,6 +429,17 @@ func (final expectation) Flag(name string) (value bool, err error) {
 	return
 }
 
+/* Checks whether the named flag was checked.
+ *
+ * NOTE: Does not check whether the flag was present
+ * in the arguments; checks only whether it was
+ * Expected or Allowed.
+ * name: The name of the flag. */
+func (final expectation) HasFlag(name string) (present bool) {
+	_, present = final.flags[name]
+	return
+}
+
 /* Checks whether the named option was found.
  *
  * Use this before calling Option on an Allowed
@@ -350,6 +447,22 @@ func (final expectation) Flag(name string) (value bool, err error) {
  * name: The name of the option. */
 func (final expectation) HasOption(name string) (present bool) {
 	_, present = final.options[name]
+	return
+}
+
+/* Checks whether there is a parameter at
+ * the specified index.
+ * i: The 0-based index of the parameter. */
+func (final expectation) HasParamAt(i int) (present bool) {
+	present = len(final.parameters) > i
+	return
+}
+
+/* Checks whether there is a parameter with
+ * the specified name.
+ * i: The name of the parameter. */
+func (final expectation) HasParamNamed(name string) (present bool) {
+	_, present = final.namedParameters[name]
 	return
 }
 
@@ -368,16 +481,28 @@ func (final expectation) Option(name string) (value string, err error) {
 /* Gets the value of the parameter at the specified position.
  * i: The 0-based index of the parameter. */
 func (final expectation) ParamAt(index int) (value string, err error) {
-	err = fmt.Errorf("Not yet implemented.")
-	value = ""
+	if len(final.parameters) > index {
+		value = final.parameters[index]
+	} else {
+		value = "ERROR"
+		err = fmt.Errorf("No parameter present at index %v.", index)
+	}
 	return
 }
 
 /* Gets the value of the named parameter.
  * name: The name of the parameter. */
 func (final expectation) ParamNamed(name string) (value string, err error) {
-	err = fmt.Errorf("Not yet implemented.")
-	value = ""
+	index, found := final.namedParameters[name]
+
+	if found {
+		value = final.parameters[index]
+	}
+
+	if !found {
+		err = fmt.Errorf("No parameter present with name %v.", name)
+	}
+
 	return
 }
 
@@ -405,6 +530,7 @@ func (chain expectation) getFlag(name string) (out expectation, present bool) {
 	return
 }
 
+/* Retrieves (if found) an option with the specified name. */
 func (chain expectation) getOption(name string) (out expectation, val string, found bool) {
 	var prefix string
 

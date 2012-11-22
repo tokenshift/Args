@@ -208,4 +208,25 @@ func TestMultipleArguments(t *testing.T) {
 	assertOption(t, result, "verbose", "(that means verbose)")
 }
 
+func TestChoppingArguments(t *testing.T) {
+	result, err := Args([]string {
+		"do",
+		"something",
+		"--carefully",
+		"--and",
+		"slowly",
+		"-v",
+		"(that means verbose)"}).
+		ExpectParam().
+		Chop().
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertParamAt(t, result, 0, "do")
+}
+
 // TODO: Add negative tests.
