@@ -12,7 +12,11 @@ func Args(args []string) (parser Expectation) {
 	exp := expectation {
 		args: make([]string, len(args)),
 		consumed: make([]bool, len(args)),
+
+		errors: make([]error, 0, len(args)),
+
 		flags: make(map[string]bool),
+		options: make(map[string]string),
 	}
 
 	copy(exp.args, args)
@@ -124,6 +128,13 @@ type Expectation interface {
 	 * name: The name of the flag to check. */
 	Flag(name string) (value bool, err error)
 
+	/* Checks whether the named option was found.
+	 *
+	 * Use this before calling Option on an Allowed
+	 * (not Expected) option.
+	 * name: The name of the option. */
+	HasOption(name string) (present bool)
+
 	/* Gets the value of the named option.
 	 * name: The name of the option. */
 	Option(name string) (value string, err error)
@@ -150,6 +161,9 @@ type expectation struct {
 
 	/* Map of flags that were checked. */
 	flags map[string]bool
+
+	/* Map of options that were set. */
+	options map[string]string
 }
 
 type processor func(exp expectation) (err error)
@@ -157,9 +171,9 @@ type processor func(exp expectation) (err error)
 /* Consumes a single flag from the command-line arguments, if found.
  *
  * name: The name of the flag to look for. */
-func (old expectation) AllowFlag(name string, alts ...string) (Expectation) {
-	old, _ = old.getFlag(name)
-	return old
+func (chain expectation) AllowFlag(name string, alts ...string) (Expectation) {
+	chain, _ = chain.getFlag(name)
+	return chain
 }
 
 /* Consumes a single option and its value from the command-line arguments,
@@ -172,15 +186,30 @@ func (old expectation) AllowFlag(name string, alts ...string) (Expectation) {
  *
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
-func (old expectation) AllowOption(name string, alts ...string) (Expectation) {
-	return old
+func (chain expectation) AllowOption(name string, alts ...string) (Expectation) {
+	chain, val, found := chain.getOption(name)
+
+	if !found {
+		for _, alt := range alts {
+			chain, val, found = chain.getOption(alt)
+			if found {
+				break
+			}
+		}
+	}
+
+	if found {
+		chain.options[name] = val
+	}
+
+	return chain
 }
 
 /* Consumes the next argument from the command-line as a parameter.
  * 
  * If there are no more arguments to consume, nothing will be consumed. */
-func (old expectation) AllowParam() (Expectation) {
-	return old
+func (chain expectation) AllowParam() (Expectation) {
+	return chain
 }
 
 /* Consumes the next argument from the command-line as a parameter,
@@ -189,21 +218,21 @@ func (old expectation) AllowParam() (Expectation) {
  * If there are no more arguments to consume, nothing will be consumed,
  * and the named parameter will not be present in the result.
  * name: The name that will be assigned to the parameter. */
-func (old expectation) AllowNamedParam(name string) (Expectation) {
-	return old
+func (chain expectation) AllowNamedParam(name string) (Expectation) {
+	return chain
 }
 
 /* Consumes a single flag from the command-line arguments.
  * The flag must be present, otherwise validation will fail.
  * name: The name of the flag to look for. */
-func (old expectation) ExpectFlag(name string, alts ...string) (Expectation) {
-	old, found := old.getFlag(name)
+func (chain expectation) ExpectFlag(name string, alts ...string) (Expectation) {
+	chain, found := chain.getFlag(name)
 
 	if !found {
-		old.errors = append(old.errors, fmt.Errorf("Flag '%v' was expected and not found."))
+		chain.errors = append(chain.errors, fmt.Errorf("Flag '%v' was expected and not found.", name))
 	}
 
-	return old
+	return chain
 }
 
 /* Consumes a single option and its value from the command-line arguments.
@@ -216,15 +245,32 @@ func (old expectation) ExpectFlag(name string, alts ...string) (Expectation) {
  *
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
-func (old expectation) ExpectOption(name string, alts ...string) (Expectation) {
-	return old
+func (chain expectation) ExpectOption(name string, alts ...string) (Expectation) {
+	chain, val, found := chain.getOption(name)
+
+	if !found {
+		for _, alt := range alts {
+			chain, val, found = chain.getOption(alt)
+			if found {
+				break
+			}
+		}
+	}
+
+	if found {
+		chain.options[name] = val
+	} else {
+		chain.errors = append(chain.errors, fmt.Errorf("Option '%v' was expected and not found.", name))
+	}
+
+	return chain
 }
 
 /* Consumes the next argument from the command-line as a parameter.
  *
  * If there are no more arguments to consume, validation will fail. */
-func (old expectation) ExpectParam() (Expectation) {
-	return old
+func (chain expectation) ExpectParam() (Expectation) {
+	return chain
 }
 
 /* Consumes the next argument from the command-line as a parameter,
@@ -232,16 +278,16 @@ func (old expectation) ExpectParam() (Expectation) {
  *
  * If there are no more arguments to consume, validation will fail.
  * name: The name that will be assigned to the parameter. */
-func (old expectation) ExpectNamedParam(name string) (Expectation) {
-	return old
+func (chain expectation) ExpectNamedParam(name string) (Expectation) {
+	return chain
 }
 
 /* Discards any remaining, unconsumed arguments, so that they will
  * not cause validation to fail.
  *
  * Alternately, can be used to force the next Allow or Expect to fail. */
-func (old expectation) Chop() (Expectation) {
-	return old
+func (chain expectation) Chop() (Expectation) {
+	return chain
 }
 
 /* Discards any remaining, unconsumed arguments and calls Validate. */
@@ -297,10 +343,25 @@ func (final expectation) Flag(name string) (value bool, err error) {
 	return
 }
 
+/* Checks whether the named option was found.
+ *
+ * Use this before calling Option on an Allowed
+ * (not Expected) option.
+ * name: The name of the option. */
+func (final expectation) HasOption(name string) (present bool) {
+	_, present = final.options[name]
+	return
+}
+
 /* Gets the value of the named option.
  * name: The name of the option. */
 func (final expectation) Option(name string) (value string, err error) {
-	err = fmt.Errorf("Not yet implemented.")
+	value, present := final.options[name]
+
+	if !present {
+		err = fmt.Errorf("Option '%v' was not found.", name)
+	}
+
 	return
 }
 
@@ -324,22 +385,50 @@ func (final expectation) ParamNamed(name string) (value string, err error) {
 /* Helper Methods */
 
 /* Checks whether the specified flag is present. */
-func (old expectation) getFlag(name string) (chain expectation, present bool) {
-	for i, arg := range old.args {
-		if old.consumed[i] {
+func (chain expectation) getFlag(name string) (out expectation, present bool) {
+	for i, arg := range chain.args {
+		if chain.consumed[i] {
 			continue
 		}
 
 		if strings.HasPrefix(arg, "--") && arg[2:] == name {
 			present = true
-			old.consumed[i] = true
+			chain.consumed[i] = true
 			break
 		}
 	}
 
-	old.flags[name] = present
+	chain.flags[name] = present
 
-	chain = old
+	out = chain
+
+	return
+}
+
+func (chain expectation) getOption(name string) (out expectation, val string, found bool) {
+	var prefix string
+
+	if len(name) == 1 {
+		prefix = "-"
+	} else {
+		prefix = "--"
+	}
+
+	for i, arg := range chain.args {
+		if chain.consumed[i] {
+			continue
+		}
+
+		if strings.HasPrefix(arg, prefix) && arg[len(prefix):] == name && len(chain.args) > i + 1 {
+			found = true
+			val = chain.args[i + 1]
+			chain.consumed[i] = true
+			chain.consumed[i + 1] = true
+			break
+		}
+	}
+
+	out = chain
 
 	return
 }
