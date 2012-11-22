@@ -9,15 +9,15 @@ import (
  *
  * Constructs a new Expectation object. */
 func Args(args []string) (parser Expectation) {
-	exp := expectation {
-		args: make([]string, len(args)),
+	exp := expectation{
+		args:     make([]string, len(args)),
 		consumed: make([]bool, len(args)),
 
 		errors: make([]error, 0, len(args)),
 
-		flags: make(map[string]bool),
-		options: make(map[string]string),
-		parameters: make([]string, 0, len(args)),
+		flags:           make(map[string]bool),
+		options:         make(map[string]string),
+		parameters:      make([]string, 0, len(args)),
 		namedParameters: make(map[string]int),
 	}
 
@@ -71,7 +71,6 @@ type Expectation interface {
 	 * name: The name that will be assigned to the parameter. */
 	AllowNamedParam(name string) (chain Expectation)
 
-
 	/* Expectations */
 	// These argments MUST be present.
 
@@ -107,7 +106,6 @@ type Expectation interface {
 	 * name: The name that will be assigned to the parameter. */
 	ExpectNamedParam(name string) (chain Expectation)
 
-
 	/* Termination */
 
 	/* Discards any remaining, unconsumed arguments, so that they will
@@ -123,7 +121,6 @@ type Expectation interface {
 	 * validate the arguments. */
 	Validate() (result Expectation, err error)
 
-	
 	/* Results */
 
 	/* Gets whether the named flag was set.
@@ -193,12 +190,10 @@ type expectation struct {
 	namedParameters map[string]int
 }
 
-type processor func(exp expectation) (err error)
-
 /* Consumes a single flag from the command-line arguments, if found.
  *
  * name: The name of the flag to look for. */
-func (chain expectation) AllowFlag(name string, alts ...string) (Expectation) {
+func (chain expectation) AllowFlag(name string, alts ...string) Expectation {
 	chain, _ = chain.getFlag(name)
 	return chain
 }
@@ -213,7 +208,7 @@ func (chain expectation) AllowFlag(name string, alts ...string) (Expectation) {
  *
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
-func (chain expectation) AllowOption(name string, alts ...string) (Expectation) {
+func (chain expectation) AllowOption(name string, alts ...string) Expectation {
 	chain, val, found := chain.getOption(name)
 
 	if !found {
@@ -235,7 +230,7 @@ func (chain expectation) AllowOption(name string, alts ...string) (Expectation) 
 /* Consumes the next argument from the command-line as a parameter.
  * 
  * If there are no more arguments to consume, nothing will be consumed. */
-func (chain expectation) AllowParam() (Expectation) {
+func (chain expectation) AllowParam() Expectation {
 	for i, val := range chain.args {
 		if chain.consumed[i] {
 			continue
@@ -255,7 +250,7 @@ func (chain expectation) AllowParam() (Expectation) {
  * If there are no more arguments to consume, nothing will be consumed,
  * and the named parameter will not be present in the result.
  * name: The name that will be assigned to the parameter. */
-func (chain expectation) AllowNamedParam(name string) (Expectation) {
+func (chain expectation) AllowNamedParam(name string) Expectation {
 	for i, val := range chain.args {
 		if chain.consumed[i] {
 			continue
@@ -273,7 +268,7 @@ func (chain expectation) AllowNamedParam(name string) (Expectation) {
 /* Consumes a single flag from the command-line arguments.
  * The flag must be present, otherwise validation will fail.
  * name: The name of the flag to look for. */
-func (chain expectation) ExpectFlag(name string, alts ...string) (Expectation) {
+func (chain expectation) ExpectFlag(name string, alts ...string) Expectation {
 	chain, found := chain.getFlag(name)
 
 	if !found {
@@ -293,7 +288,7 @@ func (chain expectation) ExpectFlag(name string, alts ...string) (Expectation) {
  *
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
-func (chain expectation) ExpectOption(name string, alts ...string) (Expectation) {
+func (chain expectation) ExpectOption(name string, alts ...string) Expectation {
 	chain, val, found := chain.getOption(name)
 
 	if !found {
@@ -317,7 +312,7 @@ func (chain expectation) ExpectOption(name string, alts ...string) (Expectation)
 /* Consumes the next argument from the command-line as a parameter.
  *
  * If there are no more arguments to consume, validation will fail. */
-func (chain expectation) ExpectParam() (Expectation) {
+func (chain expectation) ExpectParam() Expectation {
 	found := false
 
 	for i, val := range chain.args {
@@ -343,7 +338,7 @@ func (chain expectation) ExpectParam() (Expectation) {
  *
  * If there are no more arguments to consume, validation will fail.
  * name: The name that will be assigned to the parameter. */
-func (chain expectation) ExpectNamedParam(name string) (Expectation) {
+func (chain expectation) ExpectNamedParam(name string) Expectation {
 	found := false
 
 	for i, val := range chain.args {
@@ -369,7 +364,7 @@ func (chain expectation) ExpectNamedParam(name string) (Expectation) {
  * not cause validation to fail.
  *
  * Alternately, can be used to force the next Allow or Expect to fail. */
-func (chain expectation) Chop() (Expectation) {
+func (chain expectation) Chop() Expectation {
 	for i, _ := range chain.consumed {
 		chain.consumed[i] = true
 	}
@@ -395,13 +390,13 @@ func (final expectation) Validate() (result Expectation, err error) {
 	}
 
 	if count > 0 {
-		final.errors = append(final.errors,fmt.Errorf("%v arguments were not properly consumed.", count))
+		final.errors = append(final.errors, fmt.Errorf("%v arguments were not properly consumed.", count))
 	}
 
 	if len(final.errors) > 0 {
-		err = ArgsError {final.errors}
+		err = ArgsError{final.errors}
 	}
-	
+
 	result = final
 
 	return
@@ -411,11 +406,9 @@ type ArgsError struct {
 	Errors []error
 }
 
-
 func (argsError ArgsError) Error() string {
 	return fmt.Sprintf("Validation failed: %v", argsError.Errors)
 }
-
 
 /* Gets whether the named flag was set.
  * name: The name of the flag to check. */
@@ -506,7 +499,6 @@ func (final expectation) ParamNamed(name string) (value string, err error) {
 	return
 }
 
-
 /* Helper Methods */
 
 /* Checks whether the specified flag is present. */
@@ -545,11 +537,11 @@ func (chain expectation) getOption(name string) (out expectation, val string, fo
 			continue
 		}
 
-		if strings.HasPrefix(arg, prefix) && arg[len(prefix):] == name && len(chain.args) > i + 1 {
+		if strings.HasPrefix(arg, prefix) && arg[len(prefix):] == name && len(chain.args) > i+1 {
 			found = true
-			val = chain.args[i + 1]
+			val = chain.args[i+1]
 			chain.consumed[i] = true
-			chain.consumed[i + 1] = true
+			chain.consumed[i+1] = true
 			break
 		}
 	}

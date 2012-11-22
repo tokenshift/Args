@@ -62,11 +62,10 @@ func assertParamNamed(t *testing.T, args Expectation, name string, expected stri
 	}
 }
 
-
 /* Tests */
 
 func TestOptionalFlag(t *testing.T) {
-	result, err := Args([]string {"--test"}).
+	result, err := Args([]string{"--test"}).
 		AllowFlag("test").
 		Validate()
 
@@ -79,7 +78,7 @@ func TestOptionalFlag(t *testing.T) {
 }
 
 func TestMissingOptionalFlag(t *testing.T) {
-	result, err := Args([]string {}).
+	result, err := Args([]string{}).
 		AllowFlag("test").
 		Validate()
 
@@ -92,7 +91,7 @@ func TestMissingOptionalFlag(t *testing.T) {
 }
 
 func TestSingleFlag(t *testing.T) {
-	result, err := Args([]string {"--test"}).
+	result, err := Args([]string{"--test"}).
 		ExpectFlag("test").
 		Validate()
 
@@ -105,7 +104,7 @@ func TestSingleFlag(t *testing.T) {
 }
 
 func TestSingleMissingFlag(t *testing.T) {
-	_, err := Args([]string {}).
+	_, err := Args([]string{}).
 		ExpectFlag("test").
 		Validate()
 
@@ -116,7 +115,7 @@ func TestSingleMissingFlag(t *testing.T) {
 }
 
 func TestSingleOption(t *testing.T) {
-	result, err := Args([]string {"--key", "value"}).
+	result, err := Args([]string{"--key", "value"}).
 		ExpectOption("key").
 		Validate()
 
@@ -129,7 +128,7 @@ func TestSingleOption(t *testing.T) {
 }
 
 func TestSingleAltOption(t *testing.T) {
-	result, err := Args([]string {"--id", "value"}).
+	result, err := Args([]string{"--id", "value"}).
 		ExpectOption("key", "id").
 		Validate()
 
@@ -142,7 +141,7 @@ func TestSingleAltOption(t *testing.T) {
 }
 
 func TestSingleShortAltOption(t *testing.T) {
-	result, err := Args([]string {"-k", "value"}).
+	result, err := Args([]string{"-k", "value"}).
 		ExpectOption("key", "id", "k").
 		Validate()
 
@@ -155,7 +154,7 @@ func TestSingleShortAltOption(t *testing.T) {
 }
 
 func TestSingleParameter(t *testing.T) {
-	result, err := Args([]string {"test"}).
+	result, err := Args([]string{"test"}).
 		ExpectParam().
 		Validate()
 
@@ -168,7 +167,7 @@ func TestSingleParameter(t *testing.T) {
 }
 
 func TestSingleNamedParameter(t *testing.T) {
-	result, err := Args([]string {"test"}).
+	result, err := Args([]string{"test"}).
 		ExpectNamedParam("key").
 		Validate()
 
@@ -181,7 +180,7 @@ func TestSingleNamedParameter(t *testing.T) {
 }
 
 func TestMultipleArguments(t *testing.T) {
-	result, err := Args([]string {
+	result, err := Args([]string{
 		"do",
 		"something",
 		"--carefully",
@@ -209,7 +208,7 @@ func TestMultipleArguments(t *testing.T) {
 }
 
 func TestChoppingArguments(t *testing.T) {
-	result, err := Args([]string {
+	result, err := Args([]string{
 		"do",
 		"something",
 		"--carefully",
