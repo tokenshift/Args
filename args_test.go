@@ -116,15 +116,42 @@ func TestSingleMissingFlag(t *testing.T) {
 }
 
 func TestSingleOption(t *testing.T) {
-	t.Error("Test not implemented.")
+	result, err := Args([]string {"--key", "value"}).
+		ExpectOption("key").
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertOption(t, result, "key", "value")
 }
 
 func TestSingleAltOption(t *testing.T) {
-	t.Error("Test not implemented.")
+	result, err := Args([]string {"--id", "value"}).
+		ExpectOption("key", "id").
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertOption(t, result, "key", "value")
 }
 
 func TestSingleShortAltOption(t *testing.T) {
-	t.Error("Test not implemented.")
+	result, err := Args([]string {"-k", "value"}).
+		ExpectOption("key", "id", "k").
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertOption(t, result, "key", "value")
 }
 
 func TestSingleParameter(t *testing.T) {
