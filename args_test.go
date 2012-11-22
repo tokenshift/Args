@@ -4,25 +4,7 @@ import (
 	"testing"
 )
 
-func TestSingleFlag(t *testing.T) {
-	t.Error("Test not implemented.")
-}
-
-func TestSingleMissingFlag(t *testing.T) {
-	t.Error("Test not implemented.")
-}
-
-func TestSingleOption(t *testing.T) {
-	t.Error("Test not implemented.")
-}
-
-func TestSingleAltOption(t *testing.T) {
-	t.Error("Test not implemented.")
-}
-
-func TestSingleShortAltOption(t *testing.T) {
-	t.Error("Test not implemented.")
-}
+/* Assertions */
 
 func assertFlag(t *testing.T, args Expectation, name string, expected bool) {
 	val, err := args.Flag(name)
@@ -78,6 +60,71 @@ func assertParamNamed(t *testing.T, args Expectation, name string, expected stri
 	if val != expected {
 		t.Errorf("Expected parameter named '%v' to be '%v'.", name, expected)
 	}
+}
+
+
+/* Tests */
+
+func TestOptionalFlag(t *testing.T) {
+	result, err := Args([]string {"--test"}).
+		AllowFlag("test").
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertFlag(t, result, "test", true)
+}
+
+func TestMissingOptionalFlag(t *testing.T) {
+	result, err := Args([]string {}).
+		AllowFlag("test").
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertFlag(t, result, "test", false)
+}
+
+func TestSingleFlag(t *testing.T) {
+	result, err := Args([]string {"--test"}).
+		ExpectFlag("test").
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertFlag(t, result, "test", true)
+}
+
+func TestSingleMissingFlag(t *testing.T) {
+	_, err := Args([]string {}).
+		ExpectFlag("test").
+		Validate()
+
+	if err == nil {
+		t.Error("Validation should have failed; flag was missing.")
+		return
+	}
+}
+
+func TestSingleOption(t *testing.T) {
+	t.Error("Test not implemented.")
+}
+
+func TestSingleAltOption(t *testing.T) {
+	t.Error("Test not implemented.")
+}
+
+func TestSingleShortAltOption(t *testing.T) {
+	t.Error("Test not implemented.")
 }
 
 func TestSingleParameter(t *testing.T) {

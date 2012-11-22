@@ -1,6 +1,9 @@
 package args
 
-import ("fmt")
+import (
+	"fmt"
+	"strings"
+)
 
 /* Entry point for command-line argument parsing.
  *
@@ -8,10 +11,11 @@ import ("fmt")
 func Args(args []string) (parser Expectation) {
 	exp := expectation {
 		args: make([]string, len(args)),
-		processors: make([]processor, len(args)),
+		consumed: make([]bool, len(args)),
+		flags: make(map[string]bool),
 	}
 
-	copy(args, exp.args)
+	copy(exp.args, args)
 
 	return exp
 }
@@ -135,8 +139,17 @@ type Expectation interface {
 
 /* Implementation of the Expectation interface. */
 type expectation struct {
+	/* Will contain a copy of the arguments passed to Args. */
 	args []string
-	processors []processor
+
+	/* Tracks whether an argument at the matching index has been consumed. */
+	consumed []bool
+
+	/* Contains any errors that occur while matching arguments. */
+	errors []error
+
+	/* Map of flags that were checked. */
+	flags map[string]bool
 }
 
 type processor func(exp expectation) (err error)
@@ -145,9 +158,7 @@ type processor func(exp expectation) (err error)
  *
  * name: The name of the flag to look for. */
 func (old expectation) AllowFlag(name string, alts ...string) (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
+	old, _ = old.getFlag(name)
 	return old
 }
 
@@ -162,9 +173,6 @@ func (old expectation) AllowFlag(name string, alts ...string) (Expectation) {
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
 func (old expectation) AllowOption(name string, alts ...string) (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -172,9 +180,6 @@ func (old expectation) AllowOption(name string, alts ...string) (Expectation) {
  * 
  * If there are no more arguments to consume, nothing will be consumed. */
 func (old expectation) AllowParam() (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -185,9 +190,6 @@ func (old expectation) AllowParam() (Expectation) {
  * and the named parameter will not be present in the result.
  * name: The name that will be assigned to the parameter. */
 func (old expectation) AllowNamedParam(name string) (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -195,9 +197,12 @@ func (old expectation) AllowNamedParam(name string) (Expectation) {
  * The flag must be present, otherwise validation will fail.
  * name: The name of the flag to look for. */
 func (old expectation) ExpectFlag(name string, alts ...string) (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
+	old, found := old.getFlag(name)
+
+	if !found {
+		old.errors = append(old.errors, fmt.Errorf("Flag '%v' was expected and not found."))
+	}
+
 	return old
 }
 
@@ -212,9 +217,6 @@ func (old expectation) ExpectFlag(name string, alts ...string) (Expectation) {
  * The option can only be accessed by its name or position, not by
  * any of the alternate names. */
 func (old expectation) ExpectOption(name string, alts ...string) (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -222,9 +224,6 @@ func (old expectation) ExpectOption(name string, alts ...string) (Expectation) {
  *
  * If there are no more arguments to consume, validation will fail. */
 func (old expectation) ExpectParam() (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -234,9 +233,6 @@ func (old expectation) ExpectParam() (Expectation) {
  * If there are no more arguments to consume, validation will fail.
  * name: The name that will be assigned to the parameter. */
 func (old expectation) ExpectNamedParam(name string) (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -245,9 +241,6 @@ func (old expectation) ExpectNamedParam(name string) (Expectation) {
  *
  * Alternately, can be used to force the next Allow or Expect to fail. */
 func (old expectation) Chop() (Expectation) {
-	old.processors = append(old.processors, func(exp expectation) (err error) {
-		return
-	})
 	return old
 }
 
@@ -261,29 +254,92 @@ func (final expectation) ChopAndValidate() (result Expectation, err error) {
 /* Called once all expectations have been specified, to parse and
  * validate the arguments. */
 func (final expectation) Validate() (result Expectation, err error) {
-	err = fmt.Errorf("Not yet implemented.")
+	count := 0
+
+	for _, consumed := range final.consumed {
+		if !consumed {
+			count++
+		}
+	}
+
+	if count > 0 {
+		final.errors = append(final.errors,fmt.Errorf("%v arguments were not properly consumed.", count))
+	}
+
+	if len(final.errors) > 0 {
+		err = ArgsError {final.errors}
+	}
+	
 	result = final
+
 	return
 }
 
+type ArgsError struct {
+	Errors []error
+}
+
+
+func (argsError ArgsError) Error() string {
+	return fmt.Sprintf("Validation failed: %v", argsError.Errors)
+}
+
+
+/* Gets whether the named flag was set.
+ * name: The name of the flag to check. */
 func (final expectation) Flag(name string) (value bool, err error) {
-	err = fmt.Errorf("Not yet implemented.")
+	value, ok := final.flags[name]
+
+	if !ok {
+		err = fmt.Errorf("You must explicitly Expect or Allow the flag '%v'.", name)
+	}
+
 	return
 }
 
+/* Gets the value of the named option.
+ * name: The name of the option. */
 func (final expectation) Option(name string) (value string, err error) {
 	err = fmt.Errorf("Not yet implemented.")
 	return
 }
 
+/* Gets the value of the parameter at the specified position.
+ * i: The 0-based index of the parameter. */
 func (final expectation) ParamAt(index int) (value string, err error) {
 	err = fmt.Errorf("Not yet implemented.")
 	value = ""
 	return
 }
 
+/* Gets the value of the named parameter.
+ * name: The name of the parameter. */
 func (final expectation) ParamNamed(name string) (value string, err error) {
 	err = fmt.Errorf("Not yet implemented.")
 	value = ""
+	return
+}
+
+
+/* Helper Methods */
+
+/* Checks whether the specified flag is present. */
+func (old expectation) getFlag(name string) (chain expectation, present bool) {
+	for i, arg := range old.args {
+		if old.consumed[i] {
+			continue
+		}
+
+		if strings.HasPrefix(arg, "--") && arg[2:] == name {
+			present = true
+			old.consumed[i] = true
+			break
+		}
+	}
+
+	old.flags[name] = present
+
+	chain = old
+
 	return
 }
