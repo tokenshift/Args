@@ -97,7 +97,6 @@ func assertParamNamed(t *testing.T, args Expectation, name string, expected stri
 	}
 }
 
-
 /* Tests */
 
 /* Allowances */
