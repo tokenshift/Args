@@ -34,7 +34,7 @@ type expectation struct {
 //
 // name: The name of the flag to look for.
 func (chain expectation) AllowFlag(name string, alts ...string) Expectation {
-	chain, _ = chain.getFlag(name)
+	chain, _ = chain.getFlag(name, alts)
 	return chain
 }
 
@@ -83,7 +83,7 @@ func (chain expectation) AllowNamedParam(name string) Expectation {
 // The flag must be present, otherwise validation will fail.
 // name: The name of the flag to look for.
 func (chain expectation) ExpectFlag(name string, alts ...string) Expectation {
-	chain, found := chain.getFlag(name)
+	chain, found := chain.getFlag(name, alts)
 
 	if !found {
 		chain.errors = append(chain.errors, fmt.Errorf("Flag '%v' was expected and not found.", name))
@@ -145,22 +145,37 @@ func (chain expectation) ExpectNamedParam(name string) Expectation {
 // Checks whether the specified flag is present.
 //
 // name: The name of the flag to look for.
-func (chain expectation) getFlag(name string) (out expectation, present bool) {
-	for i, arg := range chain.args {
-		if chain.consumed[i] {
-			continue
-		}
+func (chain expectation) getFlag(name string, alts []string) (out expectation, present bool) {
+	out = chain
 
-		if strings.HasPrefix(arg, "--") && arg[2:] == name {
-			present = true
-			chain.consumed[i] = true
-			break
+	names := make([]string, 0, len(alts) + 1)
+	names = append(names, name)
+	names = append(names, alts...)
+
+	for _, n := range names {
+		for i, arg := range chain.args {
+			if chain.consumed[i] {
+				continue
+			}
+
+			if len(n) == 1 {
+				if strings.HasPrefix(arg, "-") && arg[1:] == n {
+					present = true
+				}
+			} else {
+				if strings.HasPrefix(arg, "--") && arg[2:] == n {
+					present = true
+				}
+			}
+
+			if (present) {
+				chain.consumed[i] = true
+				break
+			}
 		}
 	}
 
 	chain.flags[name] = present
-
-	out = chain
 
 	return
 }

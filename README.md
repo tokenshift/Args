@@ -14,7 +14,7 @@ Argument rules have two forms: `Allow...` and `Expect...`. An *allowance* identi
 
 #### Flags ####
 
-A flag is an argument of the form "--flag". A flag can be accessed by name; its value is a `bool` identifying whether or not the flag was present.
+A flag is an argument of the form "--flag" or "-f". A flag can be accessed by name; its value is a `bool` identifying whether or not the flag was present.
 
 It is an error to attempt to retrieve the value of a flag that was neither *allowed* nor *expected*.
 
