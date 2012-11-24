@@ -41,13 +41,25 @@ func (final expectation) HasParamNamed(name string) (present bool) {
 	return
 }
 
+// Gets whether the named flag was set.
+// name: The name of the flag to check. 
+func (final expectation) Flag(name string) (value bool) {
+	value, ok := final.flags[name]
+
+	if !ok {
+		panic(fmt.Errorf("You must explicitly Expect or Allow the flag '%v'.", name))
+	}
+
+	return
+}
+
 // Gets the value of the named option.
 // name: The name of the option. 
-func (final expectation) Option(name string) (value string, err error) {
+func (final expectation) Option(name string) (value string) {
 	value, present := final.options[name]
 
 	if !present {
-		err = fmt.Errorf("Option '%v' was not found.", name)
+		panic(fmt.Errorf("Option '%v' was not found.", name))
 	}
 
 	return
@@ -55,19 +67,18 @@ func (final expectation) Option(name string) (value string, err error) {
 
 // Gets the value of the parameter at the specified position.
 // i: The 0-based index of the parameter. 
-func (final expectation) ParamAt(index int) (value string, err error) {
+func (final expectation) ParamAt(index int) (value string) {
 	if len(final.parameters) > index {
 		value = final.parameters[index]
 	} else {
-		value = "ERROR"
-		err = fmt.Errorf("No parameter present at index %v.", index)
+		panic(fmt.Errorf("No parameter present at index %v.", index))
 	}
 	return
 }
 
 // Gets the value of the named parameter.
 // name: The name of the parameter. 
-func (final expectation) ParamNamed(name string) (value string, err error) {
+func (final expectation) ParamNamed(name string) (value string) {
 	index, found := final.namedParameters[name]
 
 	if found {
@@ -75,7 +86,7 @@ func (final expectation) ParamNamed(name string) (value string, err error) {
 	}
 
 	if !found {
-		err = fmt.Errorf("No parameter present with name %v.", name)
+		panic(fmt.Errorf("No parameter present with name %v.", name))
 	}
 
 	return

@@ -65,15 +65,3 @@ type ArgsError struct {
 func (argsError ArgsError) Error() string {
 	return fmt.Sprintf("Validation failed: %v", argsError.Errors)
 }
-
-// Gets whether the named flag was set.
-// name: The name of the flag to check. 
-func (final expectation) Flag(name string) (value bool, err error) {
-	value, ok := final.flags[name]
-
-	if !ok {
-		err = fmt.Errorf("You must explicitly Expect or Allow the flag '%v'.", name)
-	}
-
-	return
-}

@@ -109,7 +109,7 @@ type Expectation interface {
 
 	// Gets whether the named flag was set.
 	// name: The name of the flag to check.
-	Flag(name string) (value bool, err error)
+	Flag(name string) (value bool)
 
 	// Checks whether the named flag was checked.
 	//
@@ -138,13 +138,13 @@ type Expectation interface {
 
 	// Gets the value of the named option.
 	// name: The name of the option.
-	Option(name string) (value string, err error)
+	Option(name string) (value string)
 
 	// Gets the value of the parameter at the specified position.
 	// i: The 0-based index of the parameter.
-	ParamAt(i int) (param string, err error)
+	ParamAt(i int) (param string)
 
 	// Gets the value of the named parameter.
 	// name: The name of the parameter.
-	ParamNamed(name string) (param string, err error)
+	ParamNamed(name string) (param string)
 }

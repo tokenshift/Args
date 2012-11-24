@@ -53,3 +53,5 @@ Arguments are parsed as the argument rules are defined, not when `Validate()` is
 		AllowOption("verbose", "v").
 		AllowOption("force", "f").
 		Validate()
+		
+Attempting to access an argument that was not processed will result in a runtime panic. ALWAYS either `Validate()` the result or explicitly check for each argument using the `Has...` methods before attempting to use an argument.
