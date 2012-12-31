@@ -2,6 +2,7 @@ package args
 
 import (
 	"fmt"
+	"strings"
 )
 
 // Discards any remaining, unconsumed arguments, so that they will
@@ -13,6 +14,43 @@ func (chain expectation) Chop() Expectation {
 		chain.consumed[i] = true
 	}
 	return chain
+}
+
+// Consumes and returns any remaining, unconsumed arguments, so that
+// they will not cause validation to fail. The remaining arguments are
+// returned as a slice of strings.
+//
+// Alternately, can be used to force the next Allow or Expect to fail.
+func (chain expectation) ChopSlice() (out Expectation, tail []string) {
+	count := 0
+	for _, consumed := range chain.consumed {
+		if !consumed {
+			count++
+		}
+	}
+
+	tail = make([]string, 0, count)
+
+	for i, consumed := range chain.consumed {
+		if !consumed {
+			chain.consumed[i] = true
+			tail = append(tail, chain.args[i])
+		}
+	}
+
+	out = chain
+	return
+}
+
+// Consumes and returns any remaining, unconsumed arguments, so that
+// they will not cause validation to fail. The remaining arguments are
+// returned as a single string, concatenated with spaces.
+//
+// Alternately, can be used to force the next Allow or Expect to fail.
+func (chain expectation) ChopString() (out Expectation, tail string) {
+	out, sTail := chain.ChopSlice()
+	tail = strings.Join(sTail, " ")
+	return
 }
 
 // Discards any remaining, unconsumed arguments and calls Validate. 

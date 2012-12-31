@@ -100,6 +100,20 @@ type Expectation interface {
 	// Alternately, can be used to force the next Allow or Expect to fail.
 	Chop() (chain Expectation)
 
+	// Consumes and returns any remaining, unconsumed arguments, so that
+	// they will not cause validation to fail. The remaining arguments are
+	// returned as a slice of strings.
+	//
+	// Alternately, can be used to force the next Allow or Expect to fail.
+	ChopSlice() (chain Expectation, tail []string)
+
+	// Consumes and returns any remaining, unconsumed arguments, so that
+	// they will not cause validation to fail. The remaining arguments are
+	// returned as a single string, concatenated with spaces.
+	//
+	// Alternately, can be used to force the next Allow or Expect to fail.
+	ChopString() (chain Expectation, tail string)
+
 	// Discards any remaining, unconsumed arguments and calls Validate.
 	ChopAndValidate() (result Expectation, err error)
 

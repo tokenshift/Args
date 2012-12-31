@@ -1,6 +1,7 @@
 package args
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -13,7 +14,11 @@ import (
 // name: The name of the flag.
 // expected: The expected value of the flag. 
 func assertFlag(t *testing.T, args Expectation, name string, expected bool) {
-	val := args.Flag(name)
+	val, err:= args.Flag(name)
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if val != expected {
 		if expected {
@@ -42,7 +47,11 @@ func assertNoOption(t *testing.T, args Expectation, name string) {
 // name: The name of the option.
 // expected: The expected value of the option. 
 func assertOption(t *testing.T, args Expectation, name string, expected string) {
-	val := args.Option(name)
+	val, err := args.Option(name)
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if val != expected {
 		t.Errorf("Expected option named '%v' to be '%v'.", name, expected)
@@ -56,7 +65,11 @@ func assertOption(t *testing.T, args Expectation, name string, expected string) 
 // index: 0-based index of the positional parameter..
 // expected: The expected value of the parameter. 
 func assertParamAt(t *testing.T, args Expectation, index int, expected string) {
-	val := args.ParamAt(index)
+	val, err := args.ParamAt(index)
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if val != expected {
 		t.Errorf("Expected parameter at position %v to be '%v'.", index, expected)
@@ -70,7 +83,11 @@ func assertParamAt(t *testing.T, args Expectation, index int, expected string) {
 // name: The name of the parameter.
 // expected: The expected value of the parameter. 
 func assertParamNamed(t *testing.T, args Expectation, name string, expected string) {
-	val := args.ParamNamed(name)
+	val, err := args.ParamNamed(name)
+
+	if err != nil {
+		t.Error(err)
+	}
 
 	if val != expected {
 		t.Errorf("Expected parameter named '%v' to be '%v'.", name, expected)
@@ -344,7 +361,7 @@ func TestSingleNamedParameter(t *testing.T) {
 	assertParamNamed(t, result, "key", "test")
 }
 
-// Chop 
+// Chop
 
 func TestChoppingArguments(t *testing.T) {
 	result, err := Args([]string{
@@ -365,6 +382,60 @@ func TestChoppingArguments(t *testing.T) {
 	}
 
 	assertParamAt(t, result, 0, "do")
+}
+
+func TestChopSlice(t *testing.T) {
+	result, tail := Args([]string{
+		"do",
+		"something",
+		"--carefully",
+		"--and",
+		"slowly",
+		"-v",
+		"(that means verbose)"}).
+		ExpectParam().
+		ChopSlice()
+
+	result, err := result.
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertParamAt(t, result, 0, "do")
+
+	if strings.Join(tail, " ") != "something --carefully --and slowly -v (that means verbose)" {
+		t.Error("Remaining (chopped) arguments should have been returned as a slice.")
+	}
+}
+
+func TestChopString(t *testing.T) {
+	result, tail := Args([]string{
+		"do",
+		"something",
+		"--carefully",
+		"--and",
+		"slowly",
+		"-v",
+		"(that means verbose)"}).
+		ExpectParam().
+		ChopString()
+
+	result, err := result.
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertParamAt(t, result, 0, "do")
+
+	if tail != "something --carefully --and slowly -v (that means verbose)" {
+		t.Error("Remaining (chopped) arguments should have been returned as a string.")
+	}
 }
 
 func TestChopAndValidate(t *testing.T) {
