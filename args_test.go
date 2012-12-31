@@ -1,6 +1,7 @@
 package args
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -54,7 +55,7 @@ func assertOption(t *testing.T, args Expectation, name string, expected string) 
 	}
 
 	if val != expected {
-		t.Errorf("Expected option named '%v' to be '%v'.", name, expected)
+		t.Errorf("Expected option named '%v' to be '%v'; it was '%v'.", name, expected, val)
 	}
 }
 
@@ -408,6 +409,42 @@ func TestChopSlice(t *testing.T) {
 
 	if strings.Join(tail, " ") != "something --carefully --and slowly -v (that means verbose)" {
 		t.Error("Remaining (chopped) arguments should have been returned as a slice.")
+	}
+}
+
+func TestChopSliceWithOptionsAfterwards(t *testing.T) {
+	result, tail := Args([]string{
+		"add",
+		"feature",
+		"this",
+		"is",
+		"a",
+		"test",
+		"--priority",
+		"high"}).
+		ExpectParam().
+		AllowFlag("init").
+		AllowOption("priority", "p").
+		ChopSlice()
+
+	fmt.Println(result)
+
+	result, err := result.
+		Validate()
+
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	assertParamAt(t, result, 0, "add")
+	assertFlag(t, result, "init", false)
+	assertOption(t, result, "priority", "high")
+
+	if strings.Join(tail, " ") != "feature this is a test" {
+		t.Errorf("Expected \"%v\", got \"%v\"",
+			"feature this is a test",
+			tail)
 	}
 }
 

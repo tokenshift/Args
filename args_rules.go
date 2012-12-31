@@ -214,6 +214,10 @@ func (chain expectation) getOption(name string, alts []string) (out expectation,
 				break
 			}
 		}
+		
+		if found {
+			break
+		}
 	}
 
 	if found {
