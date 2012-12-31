@@ -33,8 +33,8 @@ type Expectation interface {
 	// including single-character names. Any single-character names should
 	// appear in the form "-n".
 	//
-	// The flag can only be accessed by its name or position, not by
-	// any of the alternate names.
+	// The flag can only be accessed by its primary name, not by any of the
+	// alternate names.
 	AllowFlag(name string, alts ...string) (chain Expectation)
 
 	// Consumes a single option and its value from the command-line arguments,
