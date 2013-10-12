@@ -2,8 +2,8 @@ package args
 
 // Entry point for command-line argument parsing.
 // Constructs a new Expectation object.
-func Args(args []string) (parser Expectation) {
-	exp := expectation{
+func Load(args []string) (Args) {
+	exp := argv{
 		args:     make([]string, len(args)),
 		consumed: make([]bool, len(args)),
 
@@ -25,7 +25,7 @@ func Args(args []string) (parser Expectation) {
 // Expectation methods are intended to be chained, ala jQuery.
 // The returned object may or may not be the same object as
 // the original; do not depend on either behavior!
-type Expectation interface {
+type Args interface {
 	// Consumes a single flag from the command-line arguments, if found.
 	//
 	// name: The name of the flag to look for.
@@ -35,7 +35,7 @@ type Expectation interface {
 	//
 	// The flag can only be accessed by its primary name, not by any of the
 	// alternate names.
-	AllowFlag(name string, alts ...string) (chain Expectation)
+	AllowFlag(name string, alts ...string) (chain Args)
 
 	// Consumes a single option and its value from the command-line arguments,
 	// if found.
@@ -47,12 +47,12 @@ type Expectation interface {
 	//
 	// The option can only be accessed by its name or position, not by
 	// any of the alternate names.
-	AllowOption(name string, alts ...string) (chain Expectation)
+	AllowOption(name string, alts ...string) (chain Args)
 
 	// Consumes the next argument from the command-line as a parameter.
 	// 
 	// If there are no more arguments to consume, nothing will be consumed.
-	AllowParam() (chain Expectation)
+	AllowParam() (chain Args)
 
 	// Consumes the next argument from the command-line as a parameter,
 	// giving it the specified name.
@@ -60,7 +60,7 @@ type Expectation interface {
 	// If there are no more arguments to consume, nothing will be consumed,
 	// and the named parameter will not be present in the result.
 	// name: The name that will be assigned to the parameter.
-	AllowNamedParam(name string) (chain Expectation)
+	AllowParamNamed(name string) (chain Args)
 
 	// Consumes a single flag from the command-line arguments.
 	// The flag must be present, otherwise validation will fail.
@@ -68,7 +68,7 @@ type Expectation interface {
 	//
 	// The flag can only be accessed by its name or position, not by
 	// any of the alternate names.
-	ExpectFlag(name string, alts ...string) (chain Expectation)
+	ExpectFlag(name string, alts ...string) (chain Args)
 
 	// Consumes a single option and its value from the command-line arguments.
 	//
@@ -80,46 +80,46 @@ type Expectation interface {
 	//
 	// The option can only be accessed by its name or position, not by
 	// any of the alternate names. */
-	ExpectOption(name string, alts ...string) (chain Expectation)
+	ExpectOption(name string, alts ...string) (chain Args)
 
 	// Consumes the next argument from the command-line as a parameter.
 	//
 	// If there are no more arguments to consume, validation will fail.
-	ExpectParam() (chain Expectation)
+	ExpectParam() (chain Args)
 
 	// Consumes the next argument from the command-line as a parameter,
 	// giving it the specified name.
 	//
 	// If there are no more arguments to consume, validation will fail.
 	// name: The name that will be assigned to the parameter.
-	ExpectNamedParam(name string) (chain Expectation)
+	ExpectParamNamed(name string) (chain Args)
 
 	// Discards any remaining, unconsumed arguments, so that they will
 	// not cause validation to fail.
 	//
 	// Alternately, can be used to force the next Allow or Expect to fail.
-	Chop() (chain Expectation)
+	Chop() (chain Args)
 
 	// Consumes and returns any remaining, unconsumed arguments, so that
 	// they will not cause validation to fail. The remaining arguments are
 	// returned as a slice of strings.
 	//
 	// Alternately, can be used to force the next Allow or Expect to fail.
-	ChopSlice() (chain Expectation, tail []string)
+	ChopSlice() (result Args, tail []string)
 
 	// Consumes and returns any remaining, unconsumed arguments, so that
 	// they will not cause validation to fail. The remaining arguments are
 	// returned as a single string, concatenated with spaces.
 	//
 	// Alternately, can be used to force the next Allow or Expect to fail.
-	ChopString() (chain Expectation, tail string)
+	ChopString() (result Args, tail string)
 
 	// Discards any remaining, unconsumed arguments and calls Validate.
-	ChopAndValidate() (result Expectation, err error)
+	ChopAndValidate() (result Args, err error)
 
 	// Called once all expectations have been specified, to parse and
 	// validate the arguments.
-	Validate() (result Expectation, err error)
+	Validate() (chain Args, err error)
 
 	// Gets whether the named flag was set.
 	// name: The name of the flag to check.

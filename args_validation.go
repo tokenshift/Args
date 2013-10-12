@@ -9,7 +9,7 @@ import (
 // not cause validation to fail.
 //
 // Alternately, can be used to force the next Allow or Expect to fail. 
-func (chain expectation) Chop() Expectation {
+func (chain argv) Chop() Args {
 	for i, _ := range chain.consumed {
 		chain.consumed[i] = true
 	}
@@ -21,7 +21,7 @@ func (chain expectation) Chop() Expectation {
 // returned as a slice of strings.
 //
 // Alternately, can be used to force the next Allow or Expect to fail.
-func (chain expectation) ChopSlice() (out Expectation, tail []string) {
+func (chain argv) ChopSlice() (result Args, tail []string) {
 	count := 0
 	for _, consumed := range chain.consumed {
 		if !consumed {
@@ -38,7 +38,7 @@ func (chain expectation) ChopSlice() (out Expectation, tail []string) {
 		}
 	}
 
-	out = chain
+	result = chain
 	return
 }
 
@@ -47,19 +47,19 @@ func (chain expectation) ChopSlice() (out Expectation, tail []string) {
 // returned as a single string, concatenated with spaces.
 //
 // Alternately, can be used to force the next Allow or Expect to fail.
-func (chain expectation) ChopString() (out Expectation, tail string) {
-	out, sTail := chain.ChopSlice()
+func (chain argv) ChopString() (result Args, tail string) {
+	result, sTail := chain.ChopSlice()
 	tail = strings.Join(sTail, " ")
 	return
 }
 
 // Discards any remaining, unconsumed arguments and calls Validate. 
-func (final expectation) ChopAndValidate() (result Expectation, err error) {
+func (final argv) ChopAndValidate() (result Args, err error) {
 	result, err = final.Chop().Validate()
 	return
 }
 
-// Called once all expectations have been specified, to parse and
+// Called once all argvs have been specified, to parse and
 // validate the arguments.
 //
 // Validation will fail if:
@@ -67,7 +67,7 @@ func (final expectation) ChopAndValidate() (result Expectation, err error) {
 //    Call Chop() to consume any remaining arguments.
 // 2. Any Expected arguments were not found.
 //    Allowed arguments will not cause validation errors when missing. 
-func (final expectation) Validate() (result Expectation, err error) {
+func (final argv) Validate() (result Args, err error) {
 	count := 0
 
 	for _, consumed := range final.consumed {
@@ -85,7 +85,6 @@ func (final expectation) Validate() (result Expectation, err error) {
 	}
 
 	result = final
-
 	return
 }
 

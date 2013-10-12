@@ -5,8 +5,8 @@ import (
 	"strings"
 )
 
-// Implementation of the Expectation interface.
-type expectation struct {
+// Implementation of the Args interface.
+type argv struct {
 	// Will contain a copy of the arguments passed to Args.
 	args []string
 
@@ -33,7 +33,7 @@ type expectation struct {
 // Consumes a single flag from the command-line arguments, if found.
 //
 // name: The name of the flag to look for.
-func (chain expectation) AllowFlag(name string, alts ...string) Expectation {
+func (chain argv) AllowFlag(name string, alts ...string) Args {
 	chain, _ = chain.getFlag(name, alts)
 	return chain
 }
@@ -48,7 +48,7 @@ func (chain expectation) AllowFlag(name string, alts ...string) Expectation {
 //
 // The option can only be accessed by its name or position, not by
 // any of the alternate names.
-func (chain expectation) AllowOption(name string, alts ...string) Expectation {
+func (chain argv) AllowOption(name string, alts ...string) Args {
 	chain, _, _ = chain.getOption(name, alts)
 
 	return chain
@@ -57,7 +57,7 @@ func (chain expectation) AllowOption(name string, alts ...string) Expectation {
 // Consumes the next argument from the command-line as a parameter.
 // 
 // If there are no more arguments to consume, nothing will be consumed.
-func (chain expectation) AllowParam() Expectation {
+func (chain argv) AllowParam() Args {
 	chain, _, _ = chain.getParam()
 
 	return chain
@@ -69,7 +69,7 @@ func (chain expectation) AllowParam() Expectation {
 // If there are no more arguments to consume, nothing will be consumed,
 // and the named parameter will not be present in the result.
 // name: The name that will be assigned to the parameter.
-func (chain expectation) AllowNamedParam(name string) Expectation {
+func (chain argv) AllowParamNamed(name string) Args {
 	chain, index, found := chain.getParam()
 
 	if found {
@@ -82,7 +82,7 @@ func (chain expectation) AllowNamedParam(name string) Expectation {
 // Consumes a single flag from the command-line arguments.
 // The flag must be present, otherwise validation will fail.
 // name: The name of the flag to look for.
-func (chain expectation) ExpectFlag(name string, alts ...string) Expectation {
+func (chain argv) ExpectFlag(name string, alts ...string) Args {
 	chain, found := chain.getFlag(name, alts)
 
 	if !found {
@@ -102,7 +102,7 @@ func (chain expectation) ExpectFlag(name string, alts ...string) Expectation {
 //
 // The option can only be accessed by its name or position, not by
 // any of the alternate names.
-func (chain expectation) ExpectOption(name string, alts ...string) Expectation {
+func (chain argv) ExpectOption(name string, alts ...string) Args {
 	chain, _, found := chain.getOption(name, alts)
 
 	if !found {
@@ -115,7 +115,7 @@ func (chain expectation) ExpectOption(name string, alts ...string) Expectation {
 // Consumes the next argument from the command-line as a parameter.
 //
 // If there are no more arguments to consume, validation will fail.
-func (chain expectation) ExpectParam() Expectation {
+func (chain argv) ExpectParam() Args {
 	chain, _, found := chain.getParam()
 
 	if !found {
@@ -130,7 +130,7 @@ func (chain expectation) ExpectParam() Expectation {
 //
 // If there are no more arguments to consume, validation will fail.
 // name: The name that will be assigned to the parameter.
-func (chain expectation) ExpectNamedParam(name string) Expectation {
+func (chain argv) ExpectParamNamed(name string) Args {
 	chain, index, found := chain.getParam()
 
 	if found {
@@ -145,7 +145,7 @@ func (chain expectation) ExpectNamedParam(name string) Expectation {
 // Checks whether the specified flag is present.
 //
 // name: The name of the flag to look for.
-func (chain expectation) getFlag(name string, alts []string) (out expectation, present bool) {
+func (chain argv) getFlag(name string, alts []string) (out argv, present bool) {
 	out = chain
 
 	names := make([]string, 0, len(alts) + 1)
@@ -184,7 +184,7 @@ func (chain expectation) getFlag(name string, alts []string) (out expectation, p
 //
 // name: The primary name of the option.
 // alts: Any other names the option could have.
-func (chain expectation) getOption(name string, alts []string) (out expectation, val string, found bool) {
+func (chain argv) getOption(name string, alts []string) (out argv, val string, found bool) {
 	out = chain
 
 	names := make([]string, 0, len(alts)+1)
@@ -228,7 +228,7 @@ func (chain expectation) getOption(name string, alts []string) (out expectation,
 }
 
 // Retrieves the next positional parameter, if there is one.
-func (chain expectation) getParam() (out expectation, index int, found bool) {
+func (chain argv) getParam() (out argv, index int, found bool) {
 	out = chain
 
 	for i, val := range chain.args {

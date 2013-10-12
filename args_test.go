@@ -1,20 +1,17 @@
 package args
 
-import (
-	"fmt"
-	"strings"
-	"testing"
-)
+import "strings"
+import "testing"
 
 // Assertions 
 
 // Test that the specified flag has the expected value.
 //
 // t: Test context.
-// args: The Expectation object being tested.
+// args: The Args object being tested.
 // name: The name of the flag.
 // expected: The expected value of the flag. 
-func assertFlag(t *testing.T, args Expectation, name string, expected bool) {
+func assertFlag(t *testing.T, args Args, name string, expected bool) {
 	val, err:= args.Flag(name)
 
 	if err != nil {
@@ -33,9 +30,9 @@ func assertFlag(t *testing.T, args Expectation, name string, expected bool) {
 // Test that the specified option is not present.
 //
 // t: Test context.
-// args: The Expectation object being tested.
+// args: The Args object being tested.
 // name: The name of the option. 
-func assertNoOption(t *testing.T, args Expectation, name string) {
+func assertNoOption(t *testing.T, args Args, name string) {
 	if args.HasOption(name) {
 		t.Errorf("Option named '%v' was not expected.", name)
 	}
@@ -44,10 +41,10 @@ func assertNoOption(t *testing.T, args Expectation, name string) {
 // Test that the specified option has the expected value.
 //
 // t: Test context.
-// args: The Expectation object being tested.
+// args: The Args object being tested.
 // name: The name of the option.
 // expected: The expected value of the option. 
-func assertOption(t *testing.T, args Expectation, name string, expected string) {
+func assertOption(t *testing.T, args Args, name string, expected string) {
 	val, err := args.Option(name)
 
 	if err != nil {
@@ -62,10 +59,10 @@ func assertOption(t *testing.T, args Expectation, name string, expected string) 
 // Test that the specified parameter has the expected value.
 //
 // t: Test context.
-// args: The Expectation object being tested.
+// args: The Args object being tested.
 // index: 0-based index of the positional parameter..
 // expected: The expected value of the parameter. 
-func assertParamAt(t *testing.T, args Expectation, index int, expected string) {
+func assertParamAt(t *testing.T, args Args, index int, expected string) {
 	val, err := args.ParamAt(index)
 
 	if err != nil {
@@ -80,10 +77,10 @@ func assertParamAt(t *testing.T, args Expectation, index int, expected string) {
 // Test that the specified parameter has the expected value.
 //
 // t: Test context.
-// args: The Expectation object being tested.
+// args: The Args object being tested.
 // name: The name of the parameter.
 // expected: The expected value of the parameter. 
-func assertParamNamed(t *testing.T, args Expectation, name string, expected string) {
+func assertParamNamed(t *testing.T, args Args, name string, expected string) {
 	val, err := args.ParamNamed(name)
 
 	if err != nil {
@@ -102,7 +99,7 @@ func assertParamNamed(t *testing.T, args Expectation, name string, expected stri
 // Flags 
 
 func TestOptionalFlag(t *testing.T) {
-	result, err := Args([]string{"--test"}).
+	result, err := Load([]string{"--test"}).
 		AllowFlag("test").
 		Validate()
 
@@ -115,7 +112,7 @@ func TestOptionalFlag(t *testing.T) {
 }
 
 func TestMissingOptionalFlag(t *testing.T) {
-	result, err := Args([]string{}).
+	result, err := Load([]string{}).
 		AllowFlag("test").
 		Validate()
 
@@ -130,7 +127,7 @@ func TestMissingOptionalFlag(t *testing.T) {
 // Options 
 
 func TestMissingAllowedOption(t *testing.T) {
-	result, err := Args([]string{}).
+	result, err := Load([]string{}).
 		AllowOption("key").
 		Validate()
 
@@ -143,7 +140,7 @@ func TestMissingAllowedOption(t *testing.T) {
 }
 
 func TestSingleAllowedOption(t *testing.T) {
-	result, err := Args([]string{"--key", "value"}).
+	result, err := Load([]string{"--key", "value"}).
 		AllowOption("key").
 		Validate()
 
@@ -156,7 +153,7 @@ func TestSingleAllowedOption(t *testing.T) {
 }
 
 func TestSingleAllowedAltOption(t *testing.T) {
-	result, err := Args([]string{"--id", "value"}).
+	result, err := Load([]string{"--id", "value"}).
 		AllowOption("key", "id").
 		Validate()
 
@@ -169,7 +166,7 @@ func TestSingleAllowedAltOption(t *testing.T) {
 }
 
 func TestSingleAllowedShortAltOption(t *testing.T) {
-	result, err := Args([]string{"-k", "value"}).
+	result, err := Load([]string{"-k", "value"}).
 		AllowOption("key", "id", "k").
 		Validate()
 
@@ -184,7 +181,7 @@ func TestSingleAllowedShortAltOption(t *testing.T) {
 // Parameters 
 
 func TestMissingAllowedParameter(t *testing.T) {
-	result, err := Args([]string{}).
+	result, err := Load([]string{}).
 		AllowParam().
 		Validate()
 
@@ -199,8 +196,8 @@ func TestMissingAllowedParameter(t *testing.T) {
 }
 
 func TestMissingNamedAllowedParameter(t *testing.T) {
-	result, err := Args([]string{}).
-		AllowNamedParam("test").
+	result, err := Load([]string{}).
+		AllowParamNamed("test").
 		Validate()
 
 	if err != nil {
@@ -218,7 +215,7 @@ func TestMissingNamedAllowedParameter(t *testing.T) {
 }
 
 func TestSingleAllowedParameter(t *testing.T) {
-	result, err := Args([]string{"test"}).
+	result, err := Load([]string{"test"}).
 		AllowParam().
 		Validate()
 
@@ -231,8 +228,8 @@ func TestSingleAllowedParameter(t *testing.T) {
 }
 
 func TestSingleAllowedNamedParameter(t *testing.T) {
-	result, err := Args([]string{"test"}).
-		AllowNamedParam("key").
+	result, err := Load([]string{"test"}).
+		AllowParamNamed("key").
 		Validate()
 
 	if err != nil {
@@ -243,12 +240,12 @@ func TestSingleAllowedNamedParameter(t *testing.T) {
 	assertParamNamed(t, result, "key", "test")
 }
 
-// Expectations 
+// Argss 
 
 // Flags 
 
 func TestSingleFlag(t *testing.T) {
-	result, err := Args([]string{"--test"}).
+	result, err := Load([]string{"--test"}).
 		ExpectFlag("test").
 		Validate()
 
@@ -261,7 +258,7 @@ func TestSingleFlag(t *testing.T) {
 }
 
 func TestSingleMissingFlag(t *testing.T) {
-	_, err := Args([]string{}).
+	_, err := Load([]string{}).
 		ExpectFlag("test").
 		Validate()
 
@@ -274,7 +271,7 @@ func TestSingleMissingFlag(t *testing.T) {
 // Options 
 
 func TestMissingOption(t *testing.T) {
-	_, err := Args([]string{"--key"}).
+	_, err := Load([]string{"--key"}).
 		ExpectOption("key").
 		Validate()
 
@@ -285,7 +282,7 @@ func TestMissingOption(t *testing.T) {
 }
 
 func TestSingleOption(t *testing.T) {
-	result, err := Args([]string{"--key", "value"}).
+	result, err := Load([]string{"--key", "value"}).
 		ExpectOption("key").
 		Validate()
 
@@ -298,7 +295,7 @@ func TestSingleOption(t *testing.T) {
 }
 
 func TestSingleAltOption(t *testing.T) {
-	result, err := Args([]string{"--id", "value"}).
+	result, err := Load([]string{"--id", "value"}).
 		ExpectOption("key", "id").
 		Validate()
 
@@ -311,7 +308,7 @@ func TestSingleAltOption(t *testing.T) {
 }
 
 func TestSingleShortAltOption(t *testing.T) {
-	result, err := Args([]string{"-k", "value"}).
+	result, err := Load([]string{"-k", "value"}).
 		ExpectOption("key", "id", "k").
 		Validate()
 
@@ -326,7 +323,7 @@ func TestSingleShortAltOption(t *testing.T) {
 // Parameters 
 
 func TestMissingParameter(t *testing.T) {
-	_, err := Args([]string{}).
+	_, err := Load([]string{}).
 		ExpectParam().
 		Validate()
 
@@ -337,7 +334,7 @@ func TestMissingParameter(t *testing.T) {
 }
 
 func TestSingleParameter(t *testing.T) {
-	result, err := Args([]string{"test"}).
+	result, err := Load([]string{"test"}).
 		ExpectParam().
 		Validate()
 
@@ -350,8 +347,8 @@ func TestSingleParameter(t *testing.T) {
 }
 
 func TestSingleNamedParameter(t *testing.T) {
-	result, err := Args([]string{"test"}).
-		ExpectNamedParam("key").
+	result, err := Load([]string{"test"}).
+		ExpectParamNamed("key").
 		Validate()
 
 	if err != nil {
@@ -365,7 +362,7 @@ func TestSingleNamedParameter(t *testing.T) {
 // Chop
 
 func TestChoppingArguments(t *testing.T) {
-	result, err := Args([]string{
+	result, err := Load([]string{
 		"do",
 		"something",
 		"--carefully",
@@ -386,7 +383,7 @@ func TestChoppingArguments(t *testing.T) {
 }
 
 func TestChopSlice(t *testing.T) {
-	result, tail := Args([]string{
+	result, tail := Load([]string{
 		"do",
 		"something",
 		"--carefully",
@@ -413,7 +410,7 @@ func TestChopSlice(t *testing.T) {
 }
 
 func TestChopSliceWithOptionsAfterwards(t *testing.T) {
-	result, tail := Args([]string{
+	result, tail := Load([]string{
 		"add",
 		"feature",
 		"this",
@@ -426,8 +423,6 @@ func TestChopSliceWithOptionsAfterwards(t *testing.T) {
 		AllowFlag("init").
 		AllowOption("priority", "p").
 		ChopSlice()
-
-	fmt.Println(result)
 
 	result, err := result.
 		Validate()
@@ -449,7 +444,7 @@ func TestChopSliceWithOptionsAfterwards(t *testing.T) {
 }
 
 func TestChopString(t *testing.T) {
-	result, tail := Args([]string{
+	result, tail := Load([]string{
 		"do",
 		"something",
 		"--carefully",
@@ -476,7 +471,7 @@ func TestChopString(t *testing.T) {
 }
 
 func TestChopAndValidate(t *testing.T) {
-	result, err := Args([]string{
+	result, err := Load([]string{
 		"do",
 		"something",
 		"--carefully",
@@ -498,7 +493,7 @@ func TestChopAndValidate(t *testing.T) {
 // Additional Tests 
 
 func TestMultipleArguments(t *testing.T) {
-	result, err := Args([]string{
+	result, err := Load([]string{
 		"do",
 		"something",
 		"--carefully",
@@ -507,7 +502,7 @@ func TestMultipleArguments(t *testing.T) {
 		"-v",
 		"(that means verbose)"}).
 		ExpectParam().
-		ExpectNamedParam("command").
+		ExpectParamNamed("command").
 		ExpectFlag("carefully").
 		ExpectOption("and").
 		ExpectOption("verbose", "v").
