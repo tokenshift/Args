@@ -5,6 +5,15 @@ import "testing"
 
 // Assertions 
 
+// Tests that two booleans are equal.
+func assertBoolEquals(t *testing.T, expected bool, actual bool) bool {
+	if expected != actual {
+		t.Errorf("Expected %v, got %v.", expected, actual)
+		return false
+	}
+	return true
+}
+
 // Test that the specified flag has the expected value.
 //
 // t: Test context.
@@ -92,9 +101,15 @@ func assertParamNamed(t *testing.T, args Args, name string, expected string) {
 	}
 }
 
-// Tests 
+func assertStringEquals(t *testing.T, expected, actual string) bool {
+	if expected != actual {
+		t.Errorf("Expected '%s', got '%s'.", expected, actual)
+		return false
+	}
+	return true
+}
 
-// Allowances 
+// Tests 
 
 // Flags 
 
