@@ -96,11 +96,11 @@ func (args argv) String() string {
 	fmt.Fprintln(&out, "")
 
 	for i, val := range(args.parameters) {
-		fmt.Fprintf(&out, "%i => %s\n", i, val)
+		fmt.Fprintf(&out, "%d => %s\n", i, val)
 	}
 
 	for name, i := range(args.namedParameters) {
-		fmt.Fprintf(&out, "%s => %i\n", name, i)
+		fmt.Fprintf(&out, "%s => %d\n", name, i)
 	}
 
 	return out.String()
