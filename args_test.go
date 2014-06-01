@@ -21,11 +21,7 @@ func assertBoolEquals(t *testing.T, expected bool, actual bool) bool {
 // name: The name of the flag.
 // expected: The expected value of the flag. 
 func assertFlag(t *testing.T, args Args, name string, expected bool) {
-	val, err:= args.Flag(name)
-
-	if err != nil {
-		t.Error(err)
-	}
+	val := args.Flag(name)
 
 	if val != expected {
 		if expected {
@@ -54,11 +50,7 @@ func assertNoOption(t *testing.T, args Args, name string) {
 // name: The name of the option.
 // expected: The expected value of the option. 
 func assertOption(t *testing.T, args Args, name string, expected string) {
-	val, err := args.Option(name)
-
-	if err != nil {
-		t.Error(err)
-	}
+	val := args.Option(name)
 
 	if val != expected {
 		t.Errorf("Expected option named '%v' to be '%v'; it was '%v'.", name, expected, val)
@@ -72,11 +64,7 @@ func assertOption(t *testing.T, args Args, name string, expected string) {
 // index: 0-based index of the positional parameter..
 // expected: The expected value of the parameter. 
 func assertParamAt(t *testing.T, args Args, index int, expected string) {
-	val, err := args.ParamAt(index)
-
-	if err != nil {
-		t.Error(err)
-	}
+	val := args.ParamAt(index)
 
 	if val != expected {
 		t.Errorf("Expected parameter at position %v to be '%v'.", index, expected)
@@ -90,12 +78,8 @@ func assertParamAt(t *testing.T, args Args, index int, expected string) {
 // name: The name of the parameter.
 // expected: The expected value of the parameter. 
 func assertParamNamed(t *testing.T, args Args, name string, expected string) {
-	val, err := args.ParamNamed(name)
-
-	if err != nil {
-		t.Error(err)
-	}
-
+	val := args.ParamNamed(name)
+	
 	if val != expected {
 		t.Errorf("Expected parameter named '%v' to be '%v'.", name, expected)
 	}
