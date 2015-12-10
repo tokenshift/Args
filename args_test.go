@@ -147,3 +147,55 @@ func TestOption(t *T) {
 		t.Errorf("Should have returned an error with the name of the argument found.")
 	}
 }
+
+func TestOptionInt(t *T) {
+	args, val, ok, err := OptionInt([]string{"foo", "42"}, "foo")
+	if !argsEqual(args, []string{"foo", "42"}) {
+		t.Errorf("Should not have consumed anything.")
+	}
+	if ok {
+		t.Errorf("Should not have found the option.")
+	}
+	if err != nil {
+		t.Errorf("Should not have returned an error.")
+	}
+
+	args, val, ok, err = OptionInt([]string{"--foo", "42"}, "foo")
+	if !argsEqual(args, []string{}) {
+		t.Errorf("Should have consumed the option and its value.")
+	}
+	if val != 42 {
+		t.Errorf("Should have returned the parsed value.")
+	}
+	if !ok {
+		t.Errorf("Should have found the option.")
+	}
+	if err != nil {
+		t.Errorf("Should not have returned an error.")
+	}
+
+	args, val, ok, err = OptionInt([]string{"--foo", "-98765"}, "foo")
+	if !argsEqual(args, []string{}) {
+		t.Errorf("Should have consumed the option and its value.")
+	}
+	if val != -98765 {
+		t.Errorf("Should have returned the parsed value.")
+	}
+	if !ok {
+		t.Errorf("Should have found the option.")
+	}
+	if err != nil {
+		t.Errorf("Should not have returned an error.")
+	}
+
+	args, val, ok, err = OptionInt([]string{"--foo", "what"}, "foo")
+	if !argsEqual(args, []string{"--foo", "what"}) {
+		t.Errorf("Should not have consumed anything.")
+	}
+	if !ok {
+		t.Errorf("Should have found the option.")
+	}
+	if err == nil {
+		t.Errorf("Should have returned an error.")
+	}
+}
