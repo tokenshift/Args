@@ -1,164 +1,79 @@
 package args
 
-// Entry point for command-line argument parsing.
-// Constructs a new Expectation object.
-func Load(args []string) (Args) {
-	exp := argv{
-		args:     make([]string, len(args)),
-		consumed: make([]bool, len(args)),
+import (
+	"fmt"
+)
 
-		errors: make([]error, 0, len(args)),
-
-		flags:           make(map[string]bool),
-		options:         make(map[string]string),
-		parameters:      make([]string, 0, len(args)),
-		namedParameters: make(map[string]int),
+// Removes and returns the first argument, regardless of its form. Returns a
+// bool indicating whether there was any argument to consume.
+func Param(args []string) ([]string, string, bool) {
+	if len(args) > 0 {
+		return args[1:], args[0], true
+	} else {
+		return args, "", false
 	}
-
-	copy(exp.args, args)
-
-	return exp
 }
 
-// Represents a set of parse-and-validation instructions.
-//
-// Expectation methods are intended to be chained, ala jQuery.
-// The returned object may or may not be the same object as
-// the original; do not depend on either behavior!
-type Args interface {
-	// Consumes a single flag from the command-line arguments, if found.
-	//
-	// name: The name of the flag to look for.
-	// alts: Any other names that could be used to refer to the same option,
-	// including single-character names. Any single-character names should
-	// appear in the form "-n".
-	//
-	// The flag can only be accessed by its primary name, not by any of the
-	// alternate names.
-	AllowFlag(name string, alts ...string) (chain Args)
+// Looks for a single argument of the form "--flag" or "-f". Removes only that
+// argument, and returns a bool indicating whether it was found.
+func Flag(args []string, names...string) ([]string, bool) {
+	for _, name := range(names) {
+		if len(name) == 0 {
+			continue
+		}
 
-	// Consumes a single option and its value from the command-line arguments,
-	// if found.
-	//
-	// name: The name of the option, as it will appear in the form "--name".
-	// alts: Any other names that could be used to refer to the same option,
-	// including single-character names. Any single-character names should
-	// appear in the form "-n".
-	//
-	// The option can only be accessed by its name or position, not by
-	// any of the alternate names.
-	AllowOption(name string, alts ...string) (chain Args)
+		var lookFor string
+		if len(name) == 1 {
+			lookFor = fmt.Sprintf("-%s", name)
+		} else {
+			lookFor = fmt.Sprintf("--%s", name)
+		}
 
-	// Consumes the next argument from the command-line as a parameter.
-	// 
-	// If there are no more arguments to consume, nothing will be consumed.
-	AllowParam() (chain Args)
+		for i, arg := range(args) {
+			if arg == lookFor {
+				return append(args[0:i], args[i+1:]...), true
+			}
+		}
+	}
 
-	// Consumes the next argument from the command-line as a parameter,
-	// giving it the specified name.
-	// 
-	// If there are no more arguments to consume, nothing will be consumed,
-	// and the named parameter will not be present in the result.
-	// name: The name that will be assigned to the parameter.
-	AllowParamNamed(name string) (chain Args)
+	return args, false
+}
 
-	// Consumes a single flag from the command-line arguments.
-	// The flag must be present, otherwise validation will fail.
-	// name: The name of the flag to look for.
-	//
-	// The flag can only be accessed by its name or position, not by
-	// any of the alternate names.
-	ExpectFlag(name string, alts ...string) (chain Args)
+// Looks for arguments of the form "--name value" or "-n value". If the option
+// name is found with no argument following it, an error will be returned.
+func Option(args []string, names...string) ([]string, string, bool, error) {
+	lookFor := make([]string, 0, len(names))
 
-	// Consumes a single option and its value from the command-line arguments.
-	//
-	// If the option is not found, validation will fail.
-	// name: The name of the option, as it will appear in the form "--name".
-	// alts: Any other names that could be used to refer to the same option,
-	// including single-character names. Any single-character names should
-	// appear in the form "-n".
-	//
-	// The option can only be accessed by its name or position, not by
-	// any of the alternate names. */
-	ExpectOption(name string, alts ...string) (chain Args)
+	for _, name := range(names) {
+		if len(name) == 0 {
+			continue
+		}
 
-	// Consumes the next argument from the command-line as a parameter.
-	//
-	// If there are no more arguments to consume, validation will fail.
-	ExpectParam() (chain Args)
+		if len(name) == 1 {
+			lookFor = append(lookFor, fmt.Sprintf("-%s", name))
+		} else {
+			lookFor = append(lookFor, fmt.Sprintf("--%s", name))
+		}
+	}
 
-	// Consumes the next argument from the command-line as a parameter,
-	// giving it the specified name.
-	//
-	// If there are no more arguments to consume, validation will fail.
-	// name: The name that will be assigned to the parameter.
-	ExpectParamNamed(name string) (chain Args)
+	for i, arg := range(args) {
+		for _, name := range(lookFor) {
+			if arg == name {
+				if i == len(args) - 1 {
+					return args, "", true, OptionMissingValue(name)
+				} else {
+					val := args[i+1]
+					return append(args[0:i], args[i+2:]...), val, true, nil
+				}
+			}
+		}
+	}
 
-	// Discards any remaining, unconsumed arguments, so that they will
-	// not cause validation to fail.
-	//
-	// Alternately, can be used to force the next Allow or Expect to fail.
-	Chop() (chain Args)
+	return args, "", false, nil
+}
 
-	// Consumes and returns any remaining, unconsumed arguments, so that
-	// they will not cause validation to fail. The remaining arguments are
-	// returned as a slice of strings.
-	//
-	// Alternately, can be used to force the next Allow or Expect to fail.
-	ChopSlice() (result Args, tail []string)
+type OptionMissingValue string
 
-	// Consumes and returns any remaining, unconsumed arguments, so that
-	// they will not cause validation to fail. The remaining arguments are
-	// returned as a single string, concatenated with spaces.
-	//
-	// Alternately, can be used to force the next Allow or Expect to fail.
-	ChopString() (result Args, tail string)
-
-	// Discards any remaining, unconsumed arguments and calls Validate.
-	ChopAndValidate() (result Args, err error)
-
-	// Called once all expectations have been specified, to parse and
-	// validate the arguments.
-	Validate() (chain Args, err error)
-
-	// Gets whether the named flag was set.
-	// name: The name of the flag to check.
-	Flag(name string) bool
-
-	// Checks whether the named flag was checked.
-	//
-	// NOTE: Does not check whether the flag was present
-	// in the arguments; checks only whether it was
-	// Expected or Allowed.
-	// name: The name of the flag.
-	HasFlag(name string) bool
-
-	// Checks whether the named option was found.
-	//
-	// Use this before calling Option on an Allowed
-	// (not Expected) option.
-	// name: The name of the option.
-	HasOption(name string) bool
-
-	// Checks whether there is a parameter at
-	// the specified index.
-	// i: The 0-based index of the parameter.
-	HasParamAt(i int) bool
-
-	// Checks whether there is a parameter with
-	// the specified name.
-	// i: The name of the parameter.
-	HasParamNamed(name string) bool
-
-	// Gets the value of the named option.
-	// name: The name of the option.
-	Option(name string) string
-
-	// Gets the value of the parameter at the specified position.
-	// i: The 0-based index of the parameter.
-	ParamAt(i int) string
-
-	// Gets the value of the named parameter.
-	// name: The name of the parameter.
-	ParamNamed(name string) string
+func (e OptionMissingValue) Error() string {
+	return fmt.Sprintf("Option '%s' has no value", string(e))
 }
